@@ -1,6 +1,6 @@
 {
   "name": "@ret2hell/pi-herdr-orchestrator",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Pi-native orchestrator over Herdr: plan, dispatch worker agents, review with an independent reviewer, all gated on your approval.",
   "type": "module",
   "keywords": [
