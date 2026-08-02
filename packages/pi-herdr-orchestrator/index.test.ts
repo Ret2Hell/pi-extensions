@@ -75,7 +75,7 @@ afterEach(() => {
 	delete process.env.HERDR_PANE_ID;
 });
 
-describe("pi-herdr", () => {
+describe("pi-herdr-orchestrator", () => {
 	test("registers only inside Herdr", () => {
 		delete process.env.HERDR_ENV;
 		const tools = registerTools(() => ({}));

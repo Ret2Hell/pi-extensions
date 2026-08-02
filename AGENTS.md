@@ -6,7 +6,7 @@ Pi extensions monorepo. Each package in `packages/` is an independent pi extensi
 
 ```
 packages/
-  pi-herdr/              # pi-native orchestration over herdr: plan, dispatch, watch, review
+  pi-herdr-orchestrator/   # pi-native orchestration over herdr: plan, dispatch, watch, review
 ```
 
 Each package has its own `package.json` with `"pi": { "extensions": [...] }` declaring entry points.

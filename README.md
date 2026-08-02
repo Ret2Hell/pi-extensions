@@ -4,7 +4,7 @@ Extensions for [pi](https://github.com/earendil-works/pi), the terminal-based co
 
 | Package | Description | Usage |
 |---------|-------------|-------|
-| [pi-herdr](packages/pi-herdr) | `@ret2hell/pi-herdr-orchestrator`: Pi-native orchestration over Herdr — plan, dispatch worker agents, supervise via a run ledger, and review with an independent reviewer. | 🧪 Experimental |
+| [pi-herdr-orchestrator](packages/pi-herdr-orchestrator) | Pi-native orchestration over Herdr — plan, dispatch worker agents, supervise via a run ledger, and review with an independent reviewer. | 🧪 Experimental |
 
 ## Install
 

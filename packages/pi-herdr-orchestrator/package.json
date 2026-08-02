@@ -1,7 +1,7 @@
 {
   "name": "@ret2hell/pi-herdr-orchestrator",
   "version": "0.1.0",
-  "description": "Pi-native orchestrator over Herdr: plan, dispatch DeepSeek workers, review with a fresh gpt-5.6-sol instance, all gated on your approval.",
+  "description": "Pi-native orchestrator over Herdr: plan, dispatch worker agents, review with an independent reviewer, all gated on your approval.",
   "type": "module",
   "keywords": [
     "pi-package",
@@ -18,12 +18,12 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Ret2Hell/pi-extensions.git",
-    "directory": "packages/pi-herdr"
+    "directory": "packages/pi-herdr-orchestrator"
   },
   "bugs": {
     "url": "https://github.com/Ret2Hell/pi-extensions/issues"
   },
-  "homepage": "https://github.com/Ret2Hell/pi-extensions/tree/main/packages/pi-herdr#readme",
+  "homepage": "https://github.com/Ret2Hell/pi-extensions/tree/main/packages/pi-herdr-orchestrator#readme",
   "engines": {
     "node": ">=18.0.0"
   },
