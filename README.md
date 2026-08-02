@@ -4,12 +4,12 @@ Extensions for [pi](https://github.com/earendil-works/pi), the terminal-based co
 
 | Package | Description | Usage |
 |---------|-------------|-------|
-| [pi-herdr](packages/pi-herdr) | Pi-native tools for Herdr layouts, terminal panes, and coding agents | 🧪 Experimental |
+| [pi-herdr](packages/pi-herdr) | `@ret2hell/pi-herdr-orchestrator`: Pi-native orchestration over Herdr — plan, dispatch worker agents, supervise via a run ledger, and review with an independent reviewer. | 🧪 Experimental |
 
 ## Install
 
 ```bash
-pi install npm:@ogulcancelik/pi-herdr
+pi install npm:@ret2hell/pi-herdr-orchestrator
 ```
 
 See the package README for setup and usage.

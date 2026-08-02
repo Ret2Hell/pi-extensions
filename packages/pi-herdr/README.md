@@ -1,8 +1,16 @@
 # pi-herdr-orchestrator
 
-Pi-native orchestrator over [Herdr](https://github.com/ogulcancelik/herdr): plan an objective, dispatch bounded slices to fresh DeepSeek workers, supervise them through a run ledger, and review the evidence with an independent gpt-5.6-sol reviewer — every step gated on your approval.
+Pi-native orchestrator over [Herdr](https://github.com/ogulcancelik/herdr): plan an objective, dispatch bounded slices to fresh worker agents, supervise them through a run ledger, and review the evidence with an independent reviewer — every step gated on your approval. Worker and reviewer kinds and models are configurable.
 
 This is a fork of `@ogulcancelik/pi-herdr` that keeps the three Herdr primitives (`herdr_layout`, `herdr_pane`, `herdr_agent`) and adds the orchestration layer.
+
+## Requirements
+
+- Pi 0.80 or newer
+- Herdr 0.7.5 or newer
+- Pi running inside a Herdr pane (`HERDR_ENV=1` and `HERDR_PANE_ID` set)
+
+`opencode` and `cline` are optional — with the default config you only need whichever agent your routing points at. Both the worker roles and the reviewer are fully configurable: kind, model, and args are set in `config.json`, so you can use any supported agent (opencode, cline, codex, claude, gemini, ...) with any model you have access to.
 
 ## Install
 
@@ -24,7 +32,7 @@ This package provides structured Pi tools only. It does not bundle Herdr's stand
 
 ## Orchestration model
 
-The orchestrator is a lead-plus-workers loop. The lead is your pi session with a fresh-model planner; workers are DeepSeek V4 Flash instances, each in its own pane, executing one bounded slice each; the reviewer is a fresh pi/gpt-5.6-sol instance at thinking low that never saw the slice work.
+The orchestrator is a lead-plus-workers loop. The lead is your pi session; workers are fresh agent instances, each in its own pane, executing one bounded slice each; the reviewer is a fresh, independent agent instance that never saw the slice work. The defaults for every role are shown in [Configuration](#configuration) and can all be overridden — any supported agent kind with any model you have access to.
 
 A session looks like:
 
@@ -74,14 +82,14 @@ Polls the worker ledger for `DONE:` (success) or `BLOCKED:` (blocked with agent 
 | `slice` | Slice being reviewed |
 | `acceptance` | Slice acceptance criteria |
 | `evidence` | Evidence text or ledger content to review |
-| `kind`, `agentArgs` | Reviewer kind and args; defaults to pi/gpt-5.6-sol at thinking low |
+| `kind`, `agentArgs` | Reviewer kind and args; defaults to a fresh pi agent at low thinking |
 | `timeout` | Prompt wait timeout in ms |
 
 Splits a pane, starts the fresh reviewer, submits the reviewer brief, waits, reads the output, extracts `VERDICT: APPROVE | REJECT | RE_PLAN`, `REASON`, and `GAPS`, writes the review to `<ledger>/slices/<slice>.review.md`, and requires `ctx.ui.confirm` before the verdict is accepted.
 
 ## Configuration
 
-Configuration lives in `~/.pi/agent/pi-herdr-orchestrator/` (like `pi-codex-subagents`). Copy `config.example.json` to `config.json` to override worker/reviewer routing, ledger directory, or timeouts:
+Configuration lives in `~/.pi/agent/pi-herdr-orchestrator/` (like `pi-codex-subagents`). Every role's agent kind, model, and args are configurable — point any role at any supported agent (opencode, cline, codex, claude, gemini, ...) with any model you have access to. Copy `config.example.json` to `config.json` to override worker/reviewer routing, ledger directory, or timeouts — the example below shows the defaults:
 
 ```json
 {
@@ -233,13 +241,6 @@ The default topology is a sibling pane in the caller's current tab and working d
 Read output is truncated to the last 2,000 lines or 50KB, whichever is reached first.
 
 Full-screen agents may render through the terminal's alternate screen. Rows that leave that screen do not enter Herdr's host scrollback. If increasing `lines` does not reveal the complete response, ask the agent to write its response to a temporary Markdown file and read that file directly.
-
-## Requirements
-
-- Pi 0.80 or newer
-- Herdr 0.7.5 or newer
-- Pi running inside a Herdr pane
-- `opencode` (or `cline` fallback) for workers; pi for the reviewer
 
 ## License
 
