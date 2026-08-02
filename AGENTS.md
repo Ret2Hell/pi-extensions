@@ -6,13 +6,7 @@ Pi extensions monorepo. Each package in `packages/` is an independent pi extensi
 
 ```
 packages/
-  pi-spar/               # agent-to-agent sparring
-  pi-session-recall/     # search past sessions
-  pi-handoff/            # session context transfer
-  pi-web-browse/         # headless browser browsing
-  pi-sketch/             # visual sketching
-  pi-goal/               # autonomous goal pursuit
-  pi-ghostty-theme-sync/ # sync pi theme with ghostty colors
+  pi-herdr/              # pi-native tools for herdr layouts, panes, and agents
 ```
 
 Each package has its own `package.json` with `"pi": { "extensions": [...] }` declaring entry points.
