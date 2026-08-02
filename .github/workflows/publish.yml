@@ -49,6 +49,11 @@ jobs:
           git tag "v${VERSION}"
           git push origin main --tags
 
+      - name: Create GitHub release
+        run: |
+          VERSION=$(node -p "require('./packages/pi-herdr/package.json').version")
+          gh release create "v${VERSION}" --generate-notes --title "pi-herdr ${VERSION}"
+
       - name: Publish to npm
         working-directory: packages/pi-herdr
         run: npm publish
