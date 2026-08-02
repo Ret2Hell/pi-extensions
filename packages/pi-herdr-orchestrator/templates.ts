@@ -24,7 +24,7 @@ const BUNDLED: Record<TemplateKind, string> = {
 
 1. Each slice is dispatched to a single fresh worker with a bounded brief.
 2. Workers write progress and evidence to <workspace>/.herdr-runs/<name>.md as they go.
-3. A fresh pi reviewer (gpt-5.6-sol, thinking low, read-only) reviews each finished slice.
+3. A fresh pi reviewer (gpt-5.6-sol, thinking medium, read-only) reviews each finished slice.
 4. The lead approves, re-plans, or rejects a slice only through the approval gate.
 `,
 
@@ -102,7 +102,7 @@ Under \`VERIFY\` in <{{ ledger }}>, record:
 Produce a clear APPROVED/REJECTED verdict with evidence and stop with a \`DONE:\` line.`,
 	reviewer: `# Reviewer (fresh pi / gpt-5.6-sol, read-only)
 
-You are an independent reviewer. You have NOT seen the work before. You run with thinking level low and read-only tools.
+You are an independent reviewer. You have NOT seen the work before. You run with thinking level medium and read-only tools.
 
 You review evidence in files accepted by the lead and report the verdict.
 

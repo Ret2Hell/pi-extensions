@@ -82,7 +82,7 @@ Polls the worker ledger for `DONE:` (success) or `BLOCKED:` (blocked with agent 
 | `slice` | Slice being reviewed |
 | `acceptance` | Slice acceptance criteria |
 | `evidence` | Evidence text or ledger content to review |
-| `kind`, `agentArgs` | Reviewer kind and args; defaults to a fresh pi agent at low thinking |
+| `kind`, `agentArgs` | Reviewer kind and args; defaults to a fresh pi agent at medium thinking |
 | `timeout` | Prompt wait timeout in ms |
 
 Splits a pane, starts the fresh reviewer, submits the reviewer brief, waits, reads the output, extracts `VERDICT: APPROVE | REJECT | RE_PLAN`, `REASON`, and `GAPS`, writes the review to `<ledger>/slices/<slice>.review.md`, and requires `ctx.ui.confirm` before the verdict is accepted.
@@ -98,7 +98,7 @@ Configuration lives in `~/.pi/agent/pi-herdr-orchestrator/` (like `pi-codex-suba
     "builder": { "kind": "opencode", "model": "opencode/deepseek-v4-flash-free", "args": ["--model", "opencode/deepseek-v4-flash-free"] },
     "verifier": { "kind": "opencode", "model": "opencode/deepseek-v4-flash-free", "args": ["--model", "opencode/deepseek-v4-flash-free"] }
   },
-  "reviewer": { "kind": "pi", "model": "gpt-5.6-sol", "args": ["--model", "gpt-5.6-sol", "--thinking", "low"] },
+  "reviewer": { "kind": "pi", "model": "gpt-5.6-sol", "args": ["--model", "gpt-5.6-sol", "--thinking", "medium"] },
   "ledgerDir": ".herdr-runs",
   "startDelayMs": 2000,
   "promptTimeoutMs": 120000,

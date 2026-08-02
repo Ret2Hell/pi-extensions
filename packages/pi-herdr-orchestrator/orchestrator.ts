@@ -506,7 +506,7 @@ export default function registerOrchestrators(pi: ExtensionAPI) {
 		name: "herdr_review",
 		label: "Herdr Review",
 		description:
-			"Independently review a finished slice with a fresh pi/gpt-5.6-sol reviewer at thinking low: splits a pane, starts the reviewer agent (configurable kind/model), submits the reviewer brief with the slice's acceptance criteria and evidence, waits for settle, reads the reviewer output, extracts the verdict (APPROVE, REJECT, or RE_PLAN) with reasons and gaps, writes the review to the ledger, and requires the user's approval gate before the verdict is accepted. Returns the verdict and review file path.",
+			"Independently review a finished slice with a fresh pi/gpt-5.6-sol reviewer at thinking medium: splits a pane, starts the reviewer agent (configurable kind/model), submits the reviewer brief with the slice's acceptance criteria and evidence, waits for settle, reads the reviewer output, extracts the verdict (APPROVE, REJECT, or RE_PLAN) with reasons and gaps, writes the review to the ledger, and requires the user's approval gate before the verdict is accepted. Returns the verdict and review file path.",
 		promptSnippet: "Review a finished slice with a fresh gpt-5.6-sol reviewer",
 		promptGuidelines: [
 			"Review only finished slices that passed herdr_watch; the reviewer is a fresh pi instance that never saw the slice work.",

@@ -16,5 +16,5 @@
 
 1. Each slice is dispatched to a single fresh worker with a bounded brief.
 2. Workers write progress and evidence to <workspace>/.herdr-runs/<name>.md as they go.
-3. A fresh pi reviewer (gpt-5.6-sol, thinking low, read-only) reviews each finished slice.
+3. A fresh pi reviewer (gpt-5.6-sol, thinking medium, read-only) reviews each finished slice.
 4. The lead approves, re-plans, or rejects a slice only through the approval gate.

@@ -74,7 +74,7 @@ export const DEFAULT_WORKER: RoleDefaults = {
 export const DEFAULT_REVIEWER = {
 	kind: "pi",
 	model: "gpt-5.6-sol",
-	args: ["--model", "gpt-5.6-sol", "--thinking", "low"],
+	args: ["--model", "gpt-5.6-sol", "--thinking", "medium"],
 } as const;
 
 export function reviewerDefaults(): OrchestratorConfig["reviewer"] {
