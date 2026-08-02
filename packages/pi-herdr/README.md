@@ -1,24 +1,104 @@
-# pi-herdr
+# pi-herdr-orchestrator
 
-Pi-native tools for controlling [Herdr](https://github.com/ogulcancelik/herdr) layouts, terminal panes, and coding agents.
+Pi-native orchestrator over [Herdr](https://github.com/ogulcancelik/herdr): plan an objective, dispatch bounded slices to fresh DeepSeek workers, supervise them through a run ledger, and review the evidence with an independent gpt-5.6-sol reviewer — every step gated on your approval.
+
+This is a fork of `@ogulcancelik/pi-herdr` that keeps the three Herdr primitives (`herdr_layout`, `herdr_pane`, `herdr_agent`) and adds the orchestration layer.
 
 ## Install
 
 ```bash
-pi install npm:@ogulcancelik/pi-herdr
+pi install npm:@ret2hell/pi-herdr-orchestrator
 ```
 
 Or add the package to `~/.pi/agent/settings.json`:
 
 ```json
 {
-  "packages": ["npm:@ogulcancelik/pi-herdr"]
+  "packages": ["npm:@ret2hell/pi-herdr-orchestrator"]
 }
 ```
 
 The extension activates only when Pi runs inside a Herdr-managed pane with `HERDR_ENV=1` and `HERDR_PANE_ID` set.
 
 This package provides structured Pi tools only. It does not bundle Herdr's standalone agent skill. Install that skill separately when you want direct access to the complete installed CLI.
+
+## Orchestration model
+
+The orchestrator is a lead-plus-workers loop. The lead is your pi session with a fresh-model planner; workers are DeepSeek V4 Flash instances, each in its own pane, executing one bounded slice each; the reviewer is a fresh pi/gpt-5.6-sol instance at thinking low that never saw the slice work.
+
+A session looks like:
+
+1. `herdr_plan` writes the objective and slice breakdown to `<workspace>/.herdr-runs/plan.md` and asks for your approval.
+2. `herdr_dispatch` splits a pane, starts a worker, and submits the role's bounded brief (scope, non-goals, authority, acceptance, evidence, done-condition) with wait.
+3. `herdr_watch` polls the worker's ledger file for the `DONE:` marker, reads agent output when the ledger lags or the agent blocks, and reports done/blocked/timeout/lost.
+4. `herdr_review` spawns the fresh reviewer, feeds it the acceptance criteria and evidence, extracts `APPROVE`/`REJECT`/`RE_PLAN` with reasons and gaps, and requires your confirmation before the verdict counts.
+
+### `herdr_plan`
+
+| Parameter | Description |
+|---|---|
+| `objective` | One-sentence overall objective |
+| `slices` | Slice breakdown: name, role (explorer/builder/verifier), scope, non-goals, authority, acceptance, evidence |
+| `ledgerDir` | Ledger directory relative to the project root; defaults to `.herdr-runs` |
+
+Writes the draft plan to `plan.md`, then requires `ctx.ui.confirm` approval before marking it approved. Without a dialog-capable UI, the draft is written and reported as pending.
+
+### `herdr_dispatch`
+
+| Parameter | Description |
+|---|---|
+| `name` | Worker agent name (`[a-z][a-z0-9_-]{0,31}`, unique among live agents) |
+| `role` | `explorer` (read-only recon), `builder` (edits scoped files), or `verifier` (read-only verification) |
+| `scope`, `nonGoals`, `authority`, `acceptance`, `evidence` | Bounded brief fields rendered from the role template |
+| `kind`, `agentArgs` | Worker kind and native agent args; defaults from config |
+| `timeout` | Prompt wait timeout in ms; defaults to `promptTimeoutMs` (120000) |
+
+Splits the current pane right (no focus), waits 2s for the shell prompt, starts the worker retrying `agent_pane_busy`, then prompts with `--wait --timeout`, retrying `agent_prompt_stalled` once. Writes the rendered brief and the worker ledger file under the ledger directory. Returns the agent name, pane ID, and ledger paths for `herdr_watch`.
+
+### `herdr_watch`
+
+| Parameter | Description |
+|---|---|
+| `name` | Worker agent name |
+| `timeout` | Overall watch timeout in ms; defaults to 600000 |
+| `poll` | Poll interval in ms; defaults to 1000 |
+| `ledgerDir` | Ledger directory; defaults to `.herdr-runs` |
+
+Polls the worker ledger for `DONE:` (success) or `BLOCKED:` (blocked with agent output), checks lifecycle state via `agent get`, and reads the agent's recent output when the ledger lags or the agent is blocked. Returns `done`, `blocked`, `timeout`, or `lost`.
+
+### `herdr_review`
+
+| Parameter | Description |
+|---|---|
+| `name` | Reviewer agent name (unique among live agents) |
+| `slice` | Slice being reviewed |
+| `acceptance` | Slice acceptance criteria |
+| `evidence` | Evidence text or ledger content to review |
+| `kind`, `agentArgs` | Reviewer kind and args; defaults to pi/gpt-5.6-sol at thinking low |
+| `timeout` | Prompt wait timeout in ms |
+
+Splits a pane, starts the fresh reviewer, submits the reviewer brief, waits, reads the output, extracts `VERDICT: APPROVE | REJECT | RE_PLAN`, `REASON`, and `GAPS`, writes the review to `<ledger>/slices/<slice>.review.md`, and requires `ctx.ui.confirm` before the verdict is accepted.
+
+## Configuration
+
+Configuration lives in `~/.pi/agent/pi-herdr-orchestrator/` (like `pi-codex-subagents`). Copy `config.example.json` to `config.json` to override worker/reviewer routing, ledger directory, or timeouts:
+
+```json
+{
+  "roles": {
+    "explorer": { "kind": "opencode", "model": "opencode/deepseek-v4-flash-free", "args": ["--model", "opencode/deepseek-v4-flash-free"] },
+    "builder": { "kind": "opencode", "model": "opencode/deepseek-v4-flash-free", "args": ["--model", "opencode/deepseek-v4-flash-free"] },
+    "verifier": { "kind": "opencode", "model": "opencode/deepseek-v4-flash-free", "args": ["--model", "opencode/deepseek-v4-flash-free"] }
+  },
+  "reviewer": { "kind": "pi", "model": "gpt-5.6-sol", "args": ["--model", "gpt-5.6-sol", "--thinking", "low"] },
+  "ledgerDir": ".herdr-runs",
+  "startDelayMs": 2000,
+  "promptTimeoutMs": 120000,
+  "readLines": 120
+}
+```
+
+Brief templates are read from `<config root>/templates/<role>.md` when present, otherwise from the package's bundled `templates/`, otherwise from built-in defaults. Each template uses `{{variable}}` placeholders (name, scope, non_goals, authority, acceptance, evidence, ledger, ledger_dir).
 
 ## Execution model
 
@@ -30,7 +110,7 @@ Herdr exposes three distinct primitives:
 
 A pane exists independently of an agent. Starting an agent requires an existing pane at an available interactive shell prompt and never creates or changes layout.
 
-The extension registers one tool for each primitive.
+The extension registers one tool for each primitive, plus the four orchestrators above.
 
 ### `herdr_layout`
 
@@ -159,6 +239,7 @@ Full-screen agents may render through the terminal's alternate screen. Rows that
 - Pi 0.80 or newer
 - Herdr 0.7.5 or newer
 - Pi running inside a Herdr pane
+- `opencode` (or `cline` fallback) for workers; pi for the reviewer
 
 ## License
 

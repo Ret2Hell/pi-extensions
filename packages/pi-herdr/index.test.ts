@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import herdrExtension from "./index";
 
 const currentPane = {
@@ -49,6 +52,19 @@ function registerTools(handler: (args: string[]) => unknown | string) {
 	return tools;
 }
 
+function tempProject(ledgerDir = ".herdr-runs") {
+	const root = mkdtempSync(path.join(os.tmpdir(), "pi-herdr-test-"));
+	mkdirSync(path.join(root, ledgerDir), { recursive: true });
+	tempRoots.push(root);
+	return root;
+}
+
+const tempRoots: string[] = [];
+
+function readLedger(root: string, ledgerDir: string, file: string): string {
+	return readFileSync(path.join(root, ledgerDir, file), "utf8");
+}
+
 beforeEach(() => {
 	process.env.HERDR_ENV = "1";
 	process.env.HERDR_PANE_ID = currentPane.pane_id;
@@ -66,12 +82,23 @@ describe("pi-herdr", () => {
 		expect(tools.size).toBe(0);
 	});
 
-	test("registers separate layout, pane, and agent primitives", () => {
+	test("registers separate layout, pane, and agent primitives plus orchestrators", () => {
 		const tools = registerTools(() => ({}));
-		expect([...tools.keys()]).toEqual(["herdr_layout", "herdr_pane", "herdr_agent"]);
+		expect([...tools.keys()]).toEqual([
+			"herdr_layout",
+			"herdr_pane",
+			"herdr_agent",
+			"herdr_plan",
+			"herdr_dispatch",
+			"herdr_watch",
+			"herdr_review",
+		]);
 		expect(tools.get("herdr_layout").description).toContain("Workspaces contain tabs; tabs contain panes");
 		expect(tools.get("herdr_pane").description).toContain("ordinary processes");
 		expect(tools.get("herdr_agent").description).toContain("existing Herdr pane");
+		expect(tools.get("herdr_plan").description).toContain("orchestration plan");
+		expect(tools.get("herdr_dispatch").description).toContain("bounded slice");
+		expect(tools.get("herdr_review").description).toContain("fresh pi/gpt-5.6-sol reviewer");
 	});
 
 	test("splits the caller pane from geometry while preserving cwd and focus", async () => {
@@ -265,5 +292,198 @@ describe("pi-herdr", () => {
 
 		expect(calls).toEqual([["agent", "send-keys", "reviewer", "esc", "ctrl+c"]]);
 		expect(result.content[0].text).toBe("Sent esc ctrl+c to reviewer");
+	});
+
+	describe("pi-herdr orchestrators", () => {
+		const worker = { ...reviewer, name: "slicer", agent_status: "done" };
+		const splitPane = { ...currentPane, pane_id: "w1:p2", agent: undefined, agent_status: "unknown" };
+		const ctx = {
+			hasUI: true,
+			cwd: "/nonexistent/project",
+			ui: { confirm: async () => true },
+		};
+		const ledgerArg = ".herdr-runs";
+
+		afterEach(() => {
+			for (const root of tempRoots.splice(0)) rmSync(root, { recursive: true, force: true });
+		});
+
+		function projectCtx() {
+			const root = tempProject(ledgerArg);
+			return { ...ctx, cwd: root };
+		}
+
+		test("herdr_plan writes a draft and requires approval", async () => {
+			const root = tempProject(ledgerArg);
+			const tools = registerTools(() => ({}));
+			const approved = { confirm: async () => true };
+			const result = await tools.get("herdr_plan").execute(
+				"test",
+				{
+					objective: "Ship the login flow",
+					slices: [
+						{
+							name: "auth",
+							role: "builder",
+							scope: "src/auth/",
+							acceptance: "login works",
+						},
+					],
+					ledgerDir: ledgerArg,
+				},
+				undefined,
+				undefined,
+				{ ...ctx, cwd: root, ui: approved },
+			);
+
+			expect(result.details.approved).toBe(true);
+			const plan = readLedger(root, ledgerArg, "plan.md");
+			expect(plan).toContain("APPROVAL: CONFIRMED");
+			expect(plan).toContain("**auth** (builder)");
+		});
+
+		test("herdr_plan keeps a declined draft without approval", async () => {
+			const root = tempProject(ledgerArg);
+			const tools = registerTools(() => ({}));
+			const result = await tools.get("herdr_plan").execute(
+				"test",
+				{ objective: "Ship login", slices: [{ name: "auth", role: "builder", scope: "src/" }], ledgerDir: ledgerArg },
+				undefined,
+				undefined,
+				{ ...ctx, cwd: root, ui: { confirm: async () => false } },
+			);
+			expect(result.details.approved).toBe(false);
+			const plan = readLedger(root, ledgerArg, "plan.md");
+			expect(plan).toContain("APPROVAL: DECLINED");
+		});
+
+		test("herdr_dispatch splits a pane, starts, and prompts with a bounded brief", async () => {
+			const root = tempProject(ledgerArg);
+			const calls: string[][] = [];
+			const tools = registerTools((args) => {
+				calls.push(args);
+				if (args[0] === "pane" && args[1] === "split") return { type: "pane_info", pane: splitPane };
+				if (args[0] === "agent" && args[1] === "start") return { type: "agent_started", agent: worker };
+				if (args[0] === "agent" && args[1] === "prompt") return { type: "agent_prompted", agent: worker };
+				throw new Error(`unexpected command: ${args.join(" ")}`);
+			});
+
+			const result = await tools.get("herdr_dispatch").execute(
+				"test",
+				{
+					name: "slicer",
+					role: "builder",
+					scope: "src/auth/",
+					nonGoals: "No backend changes",
+					acceptance: "login works",
+					ledgerDir: ledgerArg,
+				},
+				undefined,
+				undefined,
+				{ ...ctx, cwd: root },
+			);
+
+			expect(result.details.agent).toBe("slicer");
+			expect(result.details.pane).toBe("w1:p2");
+			expect(calls).toContainEqual(["pane", "split", "--current", "--direction", "right", "--no-focus"]);
+			expect(calls).toContainEqual([
+				"agent",
+				"start",
+				"slicer",
+				"--kind",
+				"opencode",
+				"--pane",
+				"w1:p2",
+				"--",
+				"--model",
+				"opencode/deepseek-v4-flash-free",
+			]);
+			const promptCall = calls.find((call) => call[0] === "agent" && call[1] === "prompt");
+			expect(promptCall).toBeDefined();
+			const brief = promptCall![3];
+			expect(brief).toContain("Scope");
+			expect(brief).toContain("login works");
+			expect(brief).toContain("DONE:");
+			const ledgerFile = readLedger(root, ledgerArg, "slicer.md").length;
+			const briefFile = readLedger(root, ledgerArg, "slicer.brief.md");
+			expect(briefFile).toContain("login works");
+			expect(ledgerFile).toBeGreaterThan(0);
+		});
+
+		test("herdr_watch returns done when the ledger has a DONE marker", async () => {
+			const root = tempProject(ledgerArg);
+			writeFileSync(path.join(root, ledgerArg, "slicer.md"), "# progress\nDONE: login works\n");
+			const tools = registerTools(() => {
+				throw new Error("no herdr calls expected for ledger-done path");
+			});
+
+			const result = await tools.get("herdr_watch").execute(
+				"test",
+				{ name: "slicer", ledgerDir: ledgerArg, poll: 100 },
+				undefined,
+				undefined,
+				{ ...ctx, cwd: root },
+			);
+
+			expect(result.details.status).toBe("done");
+			expect(result.details.ledgerText).toContain("DONE: login works");
+		});
+
+		test("herdr_watch returns blocked with output when the agent is blocked", async () => {
+			const root = tempProject(ledgerArg);
+			const blockedAgent = { ...worker, agent_status: "blocked" };
+			const tools = registerTools((args) => {
+				if (args[0] === "agent" && args[1] === "get") return { type: "agent_info", agent: blockedAgent };
+				if (args[0] === "agent" && args[1] === "read") return "need approval for delete";
+				throw new Error(`unexpected command: ${args.join(" ")}`);
+			});
+
+			const result = await tools.get("herdr_watch").execute(
+				"test",
+				{ name: "slicer", ledgerDir: ledgerArg, poll: 100 },
+				undefined,
+				undefined,
+				{ ...ctx, cwd: root },
+			);
+
+			expect(result.details.status).toBe("blocked");
+			expect(result.details.output).toContain("need approval for delete");
+		});
+
+		test("herdr_review spawns a fresh reviewer and extracts a verdict", async () => {
+			const root = tempProject(ledgerArg);
+			const calls: string[][] = [];
+			const tools = registerTools((args) => {
+				calls.push(args);
+				if (args[0] === "pane" && args[1] === "split") return { type: "pane_info", pane: splitPane };
+				if (args[0] === "agent" && args[1] === "start") return { type: "agent_started", agent: { ...worker, name: "reviewer" } };
+				if (args[0] === "agent" && args[1] === "prompt") return { type: "agent_prompted", agent: { ...worker, name: "reviewer", agent_status: "done" } };
+				if (args[0] === "agent" && args[1] === "read") {
+					return "VERDICT: APPROVE\nREASON: tests pass\nGAPS: NONE";
+				}
+				throw new Error(`unexpected command: ${args.join(" ")}`);
+			});
+
+			const result = await tools.get("herdr_review").execute(
+				"test",
+				{
+					name: "reviewer",
+					slice: "auth",
+					acceptance: "login works",
+					evidence: "bun test passes",
+					ledgerDir: ledgerArg,
+				},
+				undefined,
+				undefined,
+				{ ...ctx, cwd: root },
+			);
+
+			expect(result.details.verdict).toBe("APPROVE");
+			expect(result.details.accepted).toBe(true);
+			expect(calls.some((call) => call[0] === "agent" && call[1] === "start" && call.includes("pi"))).toBe(true);
+			const review = readLedger(root, ledgerArg, path.join("slices", "auth.review.md"));
+			expect(review).toContain("VERDICT: APPROVE");
+			expect(review).toContain("USER_ACCEPTED: yes");
+		});
 	});
 });

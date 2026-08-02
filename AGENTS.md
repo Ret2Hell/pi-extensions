@@ -1,12 +1,12 @@
 # Agent Instructions
 
-Pi extensions monorepo. Each package in `packages/` is an independent pi extension published to npm under `@ogulcancelik/`.
+Pi extensions monorepo. Each package in `packages/` is an independent pi extension published to npm under `@ret2hell/`.
 
 ## Structure
 
 ```
 packages/
-  pi-herdr/              # pi-native tools for herdr layouts, panes, and agents
+  pi-herdr/              # pi-native orchestration over herdr: plan, dispatch, watch, review
 ```
 
 Each package has its own `package.json` with `"pi": { "extensions": [...] }` declaring entry points.
@@ -26,7 +26,7 @@ Pi extension docs: https://github.com/earendil-works/pi/blob/main/packages/codin
 ## Adding a Package
 
 1. Create `packages/pi-<name>/` with `package.json`, `index.ts`, `README.md`, `LICENSE`
-2. Use `@ogulcancelik/pi-<name>` as the npm package name
+2. Use `@ret2hell/pi-<name>` as the npm package name
 3. Set `"pi": { "extensions": ["./index.ts"] }` in package.json
 
 ## Publishing

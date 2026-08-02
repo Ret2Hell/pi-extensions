@@ -3,6 +3,7 @@ import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, truncateTail } from "@earendil-wo
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
+import registerOrchestrators from "./orchestrator";
 
 type AgentStatus = "idle" | "working" | "blocked" | "done" | "unknown";
 type ReadSource = "visible" | "recent" | "recent-unwrapped" | "detection";
@@ -742,4 +743,6 @@ export default function (pi: ExtensionAPI) {
 			return renderToolResult(result, options, theme);
 		},
 	});
+
+	registerOrchestrators(pi);
 }
