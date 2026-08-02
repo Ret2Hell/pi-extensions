@@ -1,6 +1,6 @@
 {
   "name": "@ret2hell/pi-herdr-orchestrator",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Pi-native orchestrator over Herdr: plan, dispatch DeepSeek workers, review with a fresh gpt-5.6-sol instance, all gated on your approval.",
   "type": "module",
   "keywords": [
