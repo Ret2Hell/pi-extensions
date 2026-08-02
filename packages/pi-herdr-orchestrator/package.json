@@ -48,6 +48,7 @@
     "index.ts",
     "core.ts",
     "orchestrator.ts",
+    "templates.ts",
     "templates/",
     "config.example.json",
     "README.md",
