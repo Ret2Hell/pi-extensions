@@ -54,6 +54,8 @@ jobs:
           git push origin main --tags
 
       - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           VERSION=$(node -p "require('./packages/pi-herdr/package.json').version")
           gh release create "v${VERSION}" --generate-notes --title "pi-herdr ${VERSION}"
